@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SQL-запросы: Доставка еды: расчёт бизнес-метрик · Илья Гуляев</title>
+<link rel="stylesheet" href="../../assets/portfolio.css">
+</head>
+<body><main><nav aria-label="Навигация"><a href="../../index.html">← Все проекты</a><a href="README.html">Описание проекта</a><a href="%D0%90%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7.sql" download>Скачать SQL</a></nav>
+<article class="document">
+<h1>SQL-запросы: Доставка еды: расчёт бизнес-метрик</h1>
+<pre><code>-- Доставка еды: расчёт бизнес-метрик
+-- Илья Гуляев
+
+-- 1. **Задача 1. Расчёт DAU**
+SELECT
+    log_date,
+    COUNT(DISTINCT user_id) AS DAU
+FROM analytics_events
+JOIN cities USING (city_id)
+WHERE log_date &lt;= &#x27;2021-06-30&#x27; AND log_date &gt;= &#x27;2021-05-01&#x27; AND event = &#x27;order&#x27; AND city_name = &#x27;Саранск&#x27;
+GROUP BY log_date
+ORDER BY log_date
+limit 10
+
+-- 2. **Задача 2. Расчёт Conversion Rate**
+SELECT DISTINCT log_date,
+                ROUND((COUNT(DISTINCT user_id) filter (WHERE event = &#x27;order&#x27;))/COUNT(DISTINCT user_id)::numeric,2) AS CR
+FROM analytics_events
+JOIN cities USING (city_id)
+WHERE log_date &lt;= &#x27;2021-06-30&#x27; AND log_date &gt;= &#x27;2021-05-01&#x27; AND city_name = &#x27;Саранск&#x27;
+GROUP BY log_date
+ORDER BY log_date
+limit 10
+    
+
+-- 3. **Задача 3. Расчёт среднего чека**
+WITH orders AS
+    (SELECT *,
+            revenue * commission AS commission_revenue
+     FROM analytics_events
+     JOIN cities ON analytics_events.city_id = cities.city_id
+     WHERE event = &#x27;order&#x27; -- Важно оставить только заказы
+         AND log_date BETWEEN &#x27;2021-05-01&#x27; AND &#x27;2021-06-30&#x27;
+         AND city_name = &#x27;Саранск&#x27;)
+
+SELECT 
+    DATE_TRUNC(&#x27;month&#x27;, log_date)::date AS &quot;Месяц&quot;,
+    COUNT(distinct order_id) AS &quot;Количество заказов&quot;, -- Считаем количество транзакций
+    ROUND(SUM(commission_revenue)::numeric, 2) AS &quot;Сумма комиссии&quot;,
+    ROUND((SUM(commission_revenue) / COUNT(distinct order_id))::numeric, 2) AS &quot;Средний чек&quot;
+FROM orders
+GROUP BY 1 -- Группировка по первому столбцу (Месяцу)
+ORDER BY 1 -- Сортировка по номеру месяца
+
+-- 4. **Задача 4. Расчёт LTV ресторанов**
+-- Рассчитываем величину комиссии с каждого заказа, отбираем заказы по дате и городу
+WITH orders AS
+    (SELECT analytics_events.rest_id,
+            analytics_events.city_id,
+            revenue * commission AS commission_revenue
+     FROM analytics_events
+     JOIN cities ON analytics_events.city_id = cities.city_id
+     WHERE revenue IS NOT NULL
+         AND log_date BETWEEN &#x27;2021-05-01&#x27; AND &#x27;2021-06-30&#x27;
+         AND city_name = &#x27;Саранск&#x27;)
+
+SELECT 
+    rest_id,
+    chain AS &quot;Название сети&quot;,
+    type AS &quot;Тип кухни&quot;,
+    ROUND(SUM (commission_revenue::numeric),2) AS LTV
+FROM orders
+JOIN partners USING (rest_id, city_id)
+GROUP BY 1, 2, 3
+ORDER BY LTV DESC
+LIMIT 3
+
+-- 5. **Задача 5. Расчёт LTV ресторанов — самые популярные блюда**
+-- Рассчитываем величину комиссии с каждого заказа, отбираем заказы по дате и городу
+WITH orders AS
+    (SELECT analytics_events.rest_id,
+            analytics_events.city_id,
+            analytics_events.object_id,
+            revenue * commission AS commission_revenue
+     FROM analytics_events
+     JOIN cities ON analytics_events.city_id = cities.city_id
+     WHERE revenue IS NOT NULL
+         AND log_date BETWEEN &#x27;2021-05-01&#x27; AND &#x27;2021-06-30&#x27;
+         AND city_name = &#x27;Саранск&#x27;), 
+
+-- Рассчитываем два ресторана с наибольшим LTV 
+top_ltv_restaurants AS
+    (SELECT orders.rest_id,
+            chain,
+            type,
+            ROUND(SUM(commission_revenue)::numeric, 2) AS LTV
+     FROM orders
+     JOIN partners ON orders.rest_id = partners.rest_id AND orders.city_id = partners.city_id
+     GROUP BY 1, 2, 3
+     ORDER BY LTV DESC
+     LIMIT 2)
+
+SELECT
+    chain AS &quot;Название сети&quot;,
+    name AS &quot;Название блюда&quot;,
+    spicy,
+    fish,
+    meat,
+    ROUND(SUM(commission_revenue)::numeric, 2) AS LTV
+FROM top_ltv_restaurants
+LEFT JOIN orders USING (rest_id)
+LEFT JOIN dishes ON orders.object_id = dishes.object_id
+GROUP BY 1, 2, 3, 4, 5
+ORDER BY 6 DESC
+LIMIT 5
+
+-- 6. **Задача 6. Расчёт Retention Rate**
+-- Рассчитываем новых пользователей по дате первого посещения продукта
+WITH new_users AS
+    (SELECT DISTINCT first_date,
+                     user_id
+     FROM analytics_events
+     JOIN cities ON analytics_events.city_id = cities.city_id
+     WHERE first_date BETWEEN &#x27;2021-05-01&#x27; AND &#x27;2021-06-24&#x27;
+         AND city_name = &#x27;Саранск&#x27;),
+
+-- Рассчитываем активных пользователей по дате события
+active_users AS
+    (SELECT DISTINCT log_date,
+                     user_id
+     FROM analytics_events 
+     JOIN cities ON analytics_events.city_id = cities.city_id
+     WHERE log_date BETWEEN &#x27;2021-05-01&#x27; AND &#x27;2021-06-30&#x27;
+         AND city_name = &#x27;Саранск&#x27;),
+
+daily_retention AS (
+SELECT n.user_id,
+       first_date,
+       log_date::date - first_date::date AS day_since_install
+FROM new_users n
+JOIN active_users a
+on n.user_id = a.user_id
+WHERE log_date &gt;= first_date)
+
+SELECT
+day_since_install,
+COUNT(DISTINCT user_id) AS retained_users,
+    -- Вместо MAX(COUNT(...)) используем подзапрос для получения общего кол-ва новых юзеров
+    ROUND(
+        COUNT(DISTINCT user_id)::numeric / 
+        (SELECT COUNT(DISTINCT user_id) FROM new_users), 
+    2) AS retention_rate 
+FROM daily_retention
+WHERE day_since_install &lt;= 7
+GROUP BY day_since_install
+ORDER BY day_since_install
+
+
+-- 7. **Задача 7. Сравнение Retention Rate по месяцам**
+-- Рассчитываем новых пользователей по дате первого посещения продукта
+WITH new_users AS
+    (SELECT DISTINCT first_date,
+                     user_id
+     FROM analytics_events
+     JOIN cities ON analytics_events.city_id = cities.city_id
+     WHERE first_date BETWEEN &#x27;2021-05-01&#x27; AND &#x27;2021-06-24&#x27;
+         AND city_name = &#x27;Саранск&#x27;),
+
+-- Рассчитываем активных пользователей по дате события
+active_users AS
+    (SELECT DISTINCT log_date,
+                     user_id
+     FROM analytics_events
+     JOIN cities ON analytics_events.city_id = cities.city_id
+     WHERE log_date BETWEEN &#x27;2021-05-01&#x27; AND &#x27;2021-06-30&#x27;
+         AND city_name = &#x27;Саранск&#x27;),
+
+-- Соединяем таблицы с новыми и активными пользователями
+daily_retention AS
+    (SELECT new_users.user_id,
+            first_date,
+            log_date::date - first_date::date AS day_since_install
+     FROM new_users
+     JOIN active_users ON new_users.user_id = active_users.user_id
+     AND log_date &gt;= first_date)
+
+SELECT
+    DATE_TRUNC(&#x27;month&#x27;, first_date)::date AS &quot;Месяц&quot;,
+    day_since_install,
+    COUNT(DISTINCT user_id) AS retained_users,
+ROUND(
+        1.0 * COUNT(DISTINCT user_id) / MAX(COUNT(DISTINCT user_id)) OVER (PARTITION BY DATE_TRUNC(&#x27;month&#x27;, first_date)::date), 
+    2) AS retention_rate
+FROM daily_retention
+WHERE day_since_install &lt;= 7
+GROUP BY Месяц, day_since_install
+ORDER BY Месяц, day_since_install
+</code></pre>
+</article>
+<footer>Илья Гуляев · Портфолио аналитика · SQL · Python · pandas · статистика</footer>
+</main></body></html>

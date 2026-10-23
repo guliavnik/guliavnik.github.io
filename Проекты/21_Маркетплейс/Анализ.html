@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SQL-запросы: Маркетплейс: продуктовые метрики и A/B-тест · Илья Гуляев</title>
+<link rel="stylesheet" href="../../assets/portfolio.css">
+</head>
+<body><main><nav aria-label="Навигация"><a href="../../index.html">← Все проекты</a><a href="README.html">Описание проекта</a><a href="%D0%90%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7.sql" download>Скачать SQL</a></nav>
+<article class="document">
+<h1>SQL-запросы: Маркетплейс: продуктовые метрики и A/B-тест</h1>
+<pre><code>-- Маркетплейс: продуктовые метрики и A/B-тест
+-- Илья Гуляев
+
+-- 1. Задание 1. Сбор данных о пользователях
+SELECT
+    user_id,
+    registration_date,
+    user_params -&gt;&gt; &#x27;age&#x27; AS age,
+    user_params -&gt;&gt; &#x27;gender&#x27; AS gender,
+    user_params -&gt;&gt; &#x27;region&#x27; AS region,
+    user_params -&gt;&gt; &#x27;acq_channel&#x27; AS acq_channel,
+    user_params -&gt;&gt; &#x27;buyer_segment&#x27; AS buyer_segment,
+    DATE_TRUNC(&#x27;week&#x27;, registration_date)::date AS cohort_week,
+    DATE_TRUNC(&#x27;month&#x27;, registration_date)::date AS cohort_month
+FROM pa_graduate.users
+WHERE registration_date &gt;= &#x27;2024-01-01&#x27;
+  AND registration_date &lt; &#x27;2025-01-01&#x27;
+ORDER BY registration_date
+LIMIT 100;
+
+-- 2. Задание 2\. Сбор данных о событиях
+SELECT
+    e.event_id,
+    e.user_id,
+    e.timestamp AS event_date,
+    e.event_type,
+    e.event_params -&gt;&gt; &#x27;os&#x27; AS os,
+    e.event_params -&gt;&gt; &#x27;device&#x27; AS device,
+    p.product_name,
+    DATE_TRUNC(&#x27;week&#x27;, e.timestamp)::date AS event_week,
+    DATE_TRUNC(&#x27;month&#x27;, e.timestamp)::date AS event_month
+FROM pa_graduate.events AS e
+LEFT JOIN pa_graduate.product_dict AS p
+    ON e.product_id = p.product_id
+WHERE e.timestamp &gt;= TIMESTAMP &#x27;2024-01-01 00:00:00&#x27;
+  AND e.timestamp &lt; TIMESTAMP &#x27;2025-01-01 00:00:00&#x27;
+ORDER BY e.timestamp
+LIMIT 100;
+
+-- 3. Задание 3\. Сбор данных о заказах
+SELECT
+    o.order_id,
+    o.user_id,
+    o.order_date,
+    p.product_name,
+    o.quantity,
+    o.unit_price,
+    o.total_price,
+    p.category_name,
+    DATE_TRUNC(&#x27;week&#x27;, o.order_date)::date AS order_week,
+    DATE_TRUNC(&#x27;month&#x27;, o.order_date)::date AS order_month
+FROM pa_graduate.orders AS o
+JOIN pa_graduate.product_dict AS p
+    ON o.product_id = p.product_id
+WHERE o.order_date &gt;= TIMESTAMP &#x27;2024-01-01 00:00:00&#x27;
+  AND o.order_date &lt; TIMESTAMP &#x27;2025-01-01 00:00:00&#x27;
+ORDER BY o.order_date
+LIMIT 100;
+</code></pre>
+</article>
+<footer>Илья Гуляев · Портфолио аналитика · SQL · Python · pandas · статистика</footer>
+</main></body></html>
