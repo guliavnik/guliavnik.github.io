@@ -10,8 +10,8 @@
 
 - [Итоговые SQL-запросы](Анализ.sql)
 - [Описание задач](SQL/README.md)
-- [Отчёт с графиками](Отчёт.html)
+- [Отчёт с графиками](https://guliavnik.github.io/%D0%9F%D1%80%D0%BE%D0%B5%D0%BA%D1%82%D1%8B/15_%D0%98%D0%BD%D0%B4%D1%83%D1%81%D1%82%D1%80%D0%B8%D1%8F_%D0%B2%D0%B8%D0%B4%D0%B5%D0%BE%D0%B8%D0%B3%D1%80/%D0%9E%D1%82%D1%87%D1%91%D1%82.html)
 - [Отчёт PDF](Отчёт.pdf)
 - [Документ](Отчёт.docx)
 
-[К списку проектов](../../README.md)
+[К списку проектов](https://guliavnik.github.io/projects.html)

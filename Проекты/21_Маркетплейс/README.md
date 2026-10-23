@@ -33,10 +33,10 @@ Built monthly revenue and marketing cost tables with SQL and pandas, separating 
 
 ## Материалы
 
-- [Расчёты, таблицы и графики](Результаты.html)
-- [SQL-запросы — просмотр в браузере](Анализ.html)
+- [Расчёты, таблицы и графики](https://guliavnik.github.io/%D0%9F%D1%80%D0%BE%D0%B5%D0%BA%D1%82%D1%8B/21_%D0%9C%D0%B0%D1%80%D0%BA%D0%B5%D1%82%D0%BF%D0%BB%D0%B5%D0%B8%CC%86%D1%81/%D0%A0%D0%B5%D0%B7%D1%83%D0%BB%D1%8C%D1%82%D0%B0%D1%82%D1%8B.html)
+- [SQL-запросы — просмотр в браузере](https://guliavnik.github.io/%D0%9F%D1%80%D0%BE%D0%B5%D0%BA%D1%82%D1%8B/21_%D0%9C%D0%B0%D1%80%D0%BA%D0%B5%D1%82%D0%BF%D0%BB%D0%B5%D0%B8%CC%86%D1%81/%D0%90%D0%BD%D0%B0%D0%BB%D0%B8%D0%B7.html)
 - [Скачать SQL-файл](Анализ.sql)
 - [Тетрадка Python с кодом и сохранёнными результатами](Проект.ipynb)
-- [Описание SQL-задач](SQL/README.html)
+- [Описание SQL-задач](https://guliavnik.github.io/%D0%9F%D1%80%D0%BE%D0%B5%D0%BA%D1%82%D1%8B/21_%D0%9C%D0%B0%D1%80%D0%BA%D0%B5%D1%82%D0%BF%D0%BB%D0%B5%D0%B8%CC%86%D1%81/SQL/README.html)
 
-[К списку проектов](../../index.html)
+[К списку проектов](https://guliavnik.github.io/projects.html)
